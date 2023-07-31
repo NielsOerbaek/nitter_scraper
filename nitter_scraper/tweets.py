@@ -141,6 +141,8 @@ def get_tweets(
     break_on_tweet_id: Optional[int] = None,
     address="https://nitter.net",
     original_urls: bool = False,
+    since_time: datetime = None,
+    until_time: datetime = None,
 ) -> Tweet:
     """Gets the target users tweets
 
@@ -151,6 +153,7 @@ def get_tweets(
         address: The address to scrape from. The default is https://nitter.net which should
             be used as a fallback address.
         original_urls: If True, the original urls will be used instead of the nitter, piped, teddit alternatives
+        date_limit: The oldest date to scrape tweets from
 
     Yields:
         Tweet Objects
@@ -179,10 +182,21 @@ def get_tweets(
 
                     tweet_data = parse_tweet(item)
                     tweet = Tweet.from_dict(tweet_data)
+                    print(tweet.time)
 
                     if tweet.tweet_id == break_on_tweet_id:
                         pages = 0
                         break
+
+                    if since_time and tweet.time.timestamp() < since_time.timestamp() and not tweet.is_pinned:
+                        # Too old, break
+                        print("TOO OLD! BREAKING")
+                        pages = 0
+                        break
+
+                    if until_time and tweet.time.timestamp() > until_time.timestamp():
+                        # Too new, continue
+                        continue
 
                     yield tweet
 
