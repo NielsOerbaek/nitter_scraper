@@ -14,7 +14,7 @@ For the best experience use this library with [Docker Engine](https://docs.docke
 
 ### Install
 ```shell
-pip install nitter-scraper
+pip install git+https://github.com/NielsOerbaek/nitter_scraper
 ```
 
 #### How to Scrape a twitter users profile information.
@@ -74,6 +74,7 @@ serialize to a dictionary
 
 ```
 #### Next step run the [examples](https://nitter-scraper.readthedocs.io/en/latest/examples/)
+> NOTE: The documentation has changed slighty in this fork. Don't trust what you read.
 
 ## NitterScraper Limitation
 
@@ -84,7 +85,3 @@ the user_id will be none.
 * The user_id cannot be scraped from the tweets.
 * birthday and is_private are not implemented in the profile.
 
-## Contact Information
-Telegram = Twitter = Tradingview = Discord = @dgnsrekt
-
-Email = dgnsrekt@pm.me
