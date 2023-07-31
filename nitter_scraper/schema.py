@@ -56,6 +56,7 @@ class Tweet(Base):
     text: str
     replies: int
     retweets: int
+    quotes: int
     likes: int
     entries: Entries
 
