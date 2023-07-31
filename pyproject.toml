@@ -2,7 +2,7 @@
 name = "nitter_scraper"
 version = "0.6.0"
 description = "Scrape Twitter API without authentication using Nitter."
-authors = ["dgnsrekt <dgnsrekt@pm.me>", NielsOerbaek <niels@ogtal.dk>]
+authors = ["dgnsrekt <dgnsrekt@pm.me>", "NielsOerbaek <niels@ogtal.dk>"]
 readme = "README.md"
 repository = "https://github.com/NielsOerbaek/nitter_scraper"
 keywords = ["twitter", "api", "no-authentication", "tweets", "docker"]
