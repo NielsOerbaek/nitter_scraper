@@ -19,26 +19,37 @@ def link_parser(tweet_link):
 
 
 def date_parser(tweet_date):
-    split_datetime = tweet_date.split(",")
+    # Check if the date uses the new format with the funky little dot
+    if "·" in tweet_date:
+        import dateutil.parser
+        dt = dateutil.parser.parse(tweet_date.replace("·", "-"))
+        return dt
+    
+    # Else use the old format
+    else:
+        split_datetime = tweet_date.split(",")
 
-    day, month, year = split_datetime[0].strip().split("/")
-    hour, minute, second = split_datetime[1].strip().split(":")
+        day, month, year = split_datetime[0].strip().split("/")
+        hour, minute, second = split_datetime[1].strip().split(":")
 
-    data = {}
+        data = {}
 
-    data["day"] = int(day)
-    data["month"] = int(month)
-    data["year"] = int(year)
+        data["day"] = int(day)
+        data["month"] = int(month)
+        data["year"] = int(year)
 
-    data["hour"] = int(hour)
-    data["minute"] = int(minute)
-    data["second"] = int(second)
+        data["hour"] = int(hour)
+        data["minute"] = int(minute)
+        data["second"] = int(second)
 
-    return datetime(**data)
+        return datetime(**data)
 
 
 def clean_stat(stat):
-    return int(stat.replace(",", ""))
+    stat = stat.replace(",", "").strip()
+    if stat == "":
+        return 0
+    return int(stat)
 
 
 def stats_parser(tweet_stats):
@@ -96,14 +107,10 @@ def parse_tweet(html) -> Dict:
 
     stats = stats_parser(html.find(".tweet-stats", first=True))
 
-    if stats.get("comment"):
-        data["replies"] = clean_stat(stats.get("comment"))
-
-    if stats.get("retweet"):
-        data["retweets"] = clean_stat(stats.get("retweet"))
-
-    if stats.get("heart"):
-        data["likes"] = clean_stat(stats.get("heart"))
+    data["replies"] = clean_stat(stats.get("comment", "0"))
+    data["retweets"] = clean_stat(stats.get("retweet", "0"))
+    data["quotes"] = clean_stat(stats.get("quote", "0"))
+    data["likes"] = clean_stat(stats.get("heart", "0"))
 
     entries = {}
     entries["hashtags"] = hashtag_parser(content.text)
@@ -133,6 +140,7 @@ def get_tweets(
     pages: int = 25,
     break_on_tweet_id: Optional[int] = None,
     address="https://nitter.net",
+    original_urls: bool = False,
 ) -> Tweet:
     """Gets the target users tweets
 
@@ -142,6 +150,7 @@ def get_tweets(
         break_on_tweet_id: Gives the ability to break out of a loop if a tweets id is found.
         address: The address to scrape from. The default is https://nitter.net which should
             be used as a fallback address.
+        original_urls: If True, the original urls will be used instead of the nitter, piped, teddit alternatives
 
     Yields:
         Tweet Objects
@@ -149,6 +158,9 @@ def get_tweets(
     """
     url = f"{address}/{username}"
     session = HTMLSession()
+
+    if original_urls:
+        session.headers.update({"Cookie": "replaceTwitter=; replaceYouTube=; replaceReddit="})
 
     def gen_tweets(pages):
         response = session.get(url)
