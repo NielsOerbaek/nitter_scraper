@@ -55,7 +55,7 @@ def parse_user_id_from_banner(banner_url: str) -> str:
         The target profiles user id.
 
     """
-    return banner_url.split("%2F")[1]
+    return banner_url.split("%2F")[4]
 
 
 def stat_cleaner(stat: str) -> int:
@@ -120,6 +120,9 @@ def profile_parser(elements: Dict) -> Dict:
 
     if elements.get("likes_count"):
         elements["likes_count"] = stat_cleaner(elements["likes_count"].text)
+
+    from pprint import pprint
+    pprint(elements)
 
     return elements
 
