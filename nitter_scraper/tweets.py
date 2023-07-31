@@ -2,6 +2,7 @@
 from datetime import datetime
 import re
 from typing import Dict, Optional
+import time
 
 from requests_html import HTMLSession
 
@@ -131,9 +132,24 @@ def timeline_parser(html):
 
 
 def pagination_parser(timeline, address, username) -> str:
-    next_page = list(timeline.find(".show-more")[-1].links)[0]
+    try:
+        next_page = list(timeline.find(".show-more")[-1].links)[0]
+    except IndexError:
+        return None
     return f"{address}/{username}{next_page}"
 
+
+def get_with_retry(session, url, retries=5):
+    time.sleep(0.2)
+    response = session.get(url)
+    if response and response.status_code == 200 and not response.html.find(".timeline-none", first=True):
+        return response
+    if retries > 0:
+        print(f"Retrying {url}..., {retries} retries left")
+        time.sleep(0.5)
+        return get_with_retry(session, url, retries=retries-1)
+    else:
+        return None
 
 def get_tweets(
     username: str,
@@ -166,10 +182,12 @@ def get_tweets(
         session.headers.update({"Cookie": "replaceTwitter=; replaceYouTube=; replaceReddit="})
 
     def gen_tweets(pages):
-        response = session.get(url)
+        response = get_with_retry(session, url)
+        if not response:
+            return
 
         while pages > 0:
-            if response.status_code == 200:
+            if response and response.status_code == 200:
                 timeline = timeline_parser(response.html)
 
                 next_url = pagination_parser(timeline, address, username)
@@ -198,7 +216,9 @@ def get_tweets(
 
                     yield tweet
 
-            response = session.get(next_url)
+            response = get_with_retry(session, next_url)
+            if not response:
+                break
             pages -= 1
 
     yield from gen_tweets(pages)
