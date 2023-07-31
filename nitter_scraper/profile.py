@@ -121,9 +121,6 @@ def profile_parser(elements: Dict) -> Dict:
     if elements.get("likes_count"):
         elements["likes_count"] = stat_cleaner(elements["likes_count"].text)
 
-    from pprint import pprint
-    pprint(elements)
-
     return elements
 
 

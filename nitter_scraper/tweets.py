@@ -182,7 +182,6 @@ def get_tweets(
 
                     tweet_data = parse_tweet(item)
                     tweet = Tweet.from_dict(tweet_data)
-                    print(tweet.time)
 
                     if tweet.tweet_id == break_on_tweet_id:
                         pages = 0
@@ -190,7 +189,6 @@ def get_tweets(
 
                     if since_time and tweet.time.timestamp() < since_time.timestamp() and not tweet.is_pinned:
                         # Too old, break
-                        print("TOO OLD! BREAKING")
                         pages = 0
                         break
 
