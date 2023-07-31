@@ -31,7 +31,10 @@ def link_parser(element: HTML) -> str:
     Returns:
         First link from a collection of links.
     """
-    return list(element.links)[0]
+    if element.links:
+        return list(element.links)[0]
+    else :
+        return None
 
 
 def parse_user_id_from_banner(banner_url: str) -> str:
@@ -55,7 +58,8 @@ def parse_user_id_from_banner(banner_url: str) -> str:
         The target profiles user id.
 
     """
-    return banner_url.split("%2F")[4]
+    if banner_url:
+        return banner_url.split("%2F")[4]
 
 
 def stat_cleaner(stat: str) -> int:

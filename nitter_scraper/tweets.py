@@ -145,7 +145,6 @@ def get_with_retry(session, url, retries=5):
     if response and response.status_code == 200 and not response.html.find(".timeline-none", first=True):
         return response
     if retries > 0:
-        print(f"Retrying {url}..., {retries} retries left")
         time.sleep(0.5)
         return get_with_retry(session, url, retries=retries-1)
     else:
