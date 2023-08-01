@@ -139,13 +139,24 @@ class Nitter(DockerBase):
             address=self.address,
         )
 
+    def profile_exists(self, username: str) -> bool:
+        """Checks if a user exists on nitter
+
+        Args:
+            username: The target profiles username.
+
+        Returns:
+            True if the profile exists, otherwise False.
+        """
+        return self.get_profile(username=username, not_found_ok=True) is not None
+
     def start(self):
         """Starts the docker the container"""
         self._create_configfile()
         client = self._get_client()
 
         self.container = client.containers.run(
-            image="zedeus/nitter:2d788704b1d922162b0e7d910f48f9127bc82d7f",
+            image="zedeus/nitter:20b5cce5dc6437ffc06ea53e9efd884f2fc66abe-arm64",
             auto_remove=True,
             ports=self.ports,
             detach=True,
