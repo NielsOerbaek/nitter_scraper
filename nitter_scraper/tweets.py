@@ -168,7 +168,8 @@ def get_tweets(
         address: The address to scrape from. The default is https://nitter.net which should
             be used as a fallback address.
         original_urls: If True, the original urls will be used instead of the nitter, piped, teddit alternatives
-        date_limit: The oldest date to scrape tweets from
+        since_time: The earliest time to scrape tweets from
+        until_time: The latest time to scrape tweets from
 
     Yields:
         Tweet Objects
@@ -177,8 +178,10 @@ def get_tweets(
     url = f"{address}/{username}"
     session = HTMLSession()
 
+    cookies = "infiniteScroll=; stickyProfile=; mp4Playback=; hlsPlayback=; proxyVideos=; autoplayGifs="
     if original_urls:
-        session.headers.update({"Cookie": "replaceTwitter=; replaceYouTube=; replaceReddit="})
+        cookies += "replaceTwitter=; replaceYouTube=; replaceReddit="
+    session.headers.update({"Cookie": cookies})
 
     def gen_tweets(pages):
         response = get_with_retry(session, url)
