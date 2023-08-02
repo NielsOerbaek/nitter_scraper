@@ -249,16 +249,22 @@ def get_tweets(
                         break
 
                     if (
-                        since_time
+                        endpoint != "search"
+                        and since_time
                         and tweet.time.timestamp() < since_time.timestamp()
                         and not tweet.is_pinned
                         and not tweet.is_retweet
                     ):
                         # Too old, break
+                        # Note: We don't break on pinned or retweets because they can be old
+                        # Note: For search, we let the search endpoint handle the since_time
                         pages = 0
                         break
 
-                    if until_time and tweet.time.timestamp() > until_time.timestamp():
+                    if (
+                        until_time
+                        and tweet.time.timestamp() > until_time.timestamp()
+                    ):
                         # Too new, continue
                         continue
 
