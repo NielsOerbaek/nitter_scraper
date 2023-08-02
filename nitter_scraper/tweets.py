@@ -3,6 +3,7 @@ from datetime import datetime
 import re
 from typing import Dict, Optional
 import time
+import dateutil.parser
 
 from requests_html import HTMLSession
 
@@ -22,10 +23,9 @@ def link_parser(tweet_link):
 def date_parser(tweet_date):
     # Check if the date uses the new format with the funky little dot
     if "·" in tweet_date:
-        import dateutil.parser
         dt = dateutil.parser.parse(tweet_date.replace("·", "-"))
         return dt
-    
+
     # Else use the old format
     else:
         split_datetime = tweet_date.split(",")
@@ -56,7 +56,12 @@ def clean_stat(stat):
 def stats_parser(tweet_stats):
     stats = {}
     for ic in tweet_stats.find(".icon-container"):
-        key = ic.find("span", first=True).attrs["class"][0].replace("icon", "").replace("-", "")
+        key = (
+            ic.find("span", first=True)
+            .attrs["class"][0]
+            .replace("icon", "")
+            .replace("-", "")
+        )
         value = ic.text
         stats[key] = value
     return stats
@@ -131,28 +136,38 @@ def timeline_parser(html):
     return html.find(".timeline", first=True)
 
 
-def pagination_parser(timeline, address, username) -> str:
+def pagination_parser(timeline, address, endpoint) -> str:
+    # If we are scraping a users timeline, the endpoint is the username
+    # If we are scraping a search, the endpoint is "search"
     try:
         next_page = list(timeline.find(".show-more")[-1].links)[0]
     except IndexError:
         return None
-    return f"{address}/{username}{next_page}"
+    return f"{address}/{endpoint}{next_page}"
 
 
 def get_with_retry(session, url, retries=5):
     time.sleep(0.2)
     response = session.get(url)
-    if response and response.status_code == 200 and not response.html.find(".timeline-none", first=True):
+    if (
+        response
+        and response.status_code == 200
+        and not response.html.find(".timeline-none", first=True)
+    ):
         return response
     if retries > 0:
+        print(f"Retrying {url}... {retries} retries left")
         time.sleep(0.5)
-        return get_with_retry(session, url, retries=retries-1)
+        return get_with_retry(session, url, retries=retries - 1)
     else:
         return None
 
+
 def get_tweets(
-    username: str,
+    username: str = None,
+    search: str = None,
     pages: int = 25,
+    limit: int = None,
     break_on_tweet_id: Optional[int] = None,
     address="https://nitter.net",
     original_urls: bool = False,
@@ -175,7 +190,31 @@ def get_tweets(
         Tweet Objects
 
     """
-    url = f"{address}/{username}"
+
+    # If the address ends with a slash, remove it
+    if address[-1] == "/":
+        address = address[:-1]
+
+    # Check that either username or search is provided
+    if not username and not search:
+        raise ValueError("Either username or search must be provided")
+    if username and search:
+        raise ValueError("Only one of username or search can be provided")
+
+    if username:
+        url = f"{address}/{username}"
+        endpoint = username
+    if search:
+        # URL encode the search string
+        search = search.replace(" ", "%20")
+        url = f"{address}/search?f=tweets&q={search}"
+        # If the since or until time is set, add it to the url as ISO date (no time)
+        if since_time:
+            url += f"&since={since_time.date().isoformat()}"
+        if until_time:
+            url += f"&until={until_time.date().isoformat()}"
+        endpoint = "search"
+
     session = HTMLSession()
 
     cookies = "infiniteScroll=; stickyProfile=; mp4Playback=; hlsPlayback=; proxyVideos=; autoplayGifs="
@@ -188,11 +227,13 @@ def get_tweets(
         if not response:
             return
 
+        num_yielded = 0
+
         while pages > 0:
             if response and response.status_code == 200:
                 timeline = timeline_parser(response.html)
 
-                next_url = pagination_parser(timeline, address, username)
+                next_url = pagination_parser(timeline, address, endpoint)
 
                 timeline_items = timeline.find(".timeline-item")
 
@@ -207,7 +248,12 @@ def get_tweets(
                         pages = 0
                         break
 
-                    if since_time and tweet.time.timestamp() < since_time.timestamp() and not tweet.is_pinned:
+                    if (
+                        since_time
+                        and tweet.time.timestamp() < since_time.timestamp()
+                        and not tweet.is_pinned
+                        and not tweet.is_retweet
+                    ):
                         # Too old, break
                         pages = 0
                         break
@@ -216,7 +262,21 @@ def get_tweets(
                         # Too new, continue
                         continue
 
-                    yield tweet
+                    # Only yield if time if between since and until
+                    if (
+                        not since_time
+                        or tweet.time.timestamp() >= since_time.timestamp()
+                    ) and (
+                        not until_time
+                        or tweet.time.timestamp() <= until_time.timestamp()
+                    ):
+                        yield tweet
+                        num_yielded += 1
+
+                        # Check if we've reached the limit
+                        if limit and num_yielded >= limit:
+                            pages = 0
+                            break
 
             response = get_with_retry(session, next_url)
             if not response:
