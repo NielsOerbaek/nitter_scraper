@@ -21,29 +21,34 @@ def link_parser(tweet_link):
 
 
 def date_parser(tweet_date):
-    # Check if the date uses the new format with the funky little dot
-    if "·" in tweet_date:
-        dt = dateutil.parser.parse(tweet_date.replace("·", "-"))
-        return dt
+    try:
+        # Check if the date uses the new format with the funky little dot
+        if "·" in tweet_date:
+            dt = dateutil.parser.parse(tweet_date.replace("·", "-").replace("Â", ""))
+            return dt
 
-    # Else use the old format
-    else:
-        split_datetime = tweet_date.split(",")
+        # Else use the old format
+        else:
+            split_datetime = tweet_date.split(",")
 
-        day, month, year = split_datetime[0].strip().split("/")
-        hour, minute, second = split_datetime[1].strip().split(":")
+            day, month, year = split_datetime[0].strip().split("/")
+            hour, minute, second = split_datetime[1].strip().split(":")
 
-        data = {}
+            data = {}
 
-        data["day"] = int(day)
-        data["month"] = int(month)
-        data["year"] = int(year)
+            data["day"] = int(day)
+            data["month"] = int(month)
+            data["year"] = int(year)
 
-        data["hour"] = int(hour)
-        data["minute"] = int(minute)
-        data["second"] = int(second)
+            data["hour"] = int(hour)
+            data["minute"] = int(minute)
+            data["second"] = int(second)
 
-        return datetime(**data)
+            return datetime(**data)
+    except Exception as e:
+        print(e)
+        print("Error parsing date:", tweet_date)
+        return None
 
 
 def clean_stat(stat):
